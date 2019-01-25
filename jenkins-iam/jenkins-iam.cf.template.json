@@ -1,0 +1,311 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "AdminCoreJenkinsUser": {
+            "Type": "AWS::IAM::User",
+            "Properties": {
+                "UserName": {
+                    "Ref": "JenkinsUserName"
+                },
+                "LoginProfile": {
+                    "Password": {
+                        "Ref": "JenkinsUserPassword"
+                    }
+                },
+                "Policies": [
+                    {
+                        "PolicyName": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-ssm"
+                                ]
+                            ]
+                        },
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "ssm:Describe*",
+                                        "ssm:Get*",
+                                        "ssm:List*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "arn:aws:ssm:*:*:parameter/unosquare/project/internal*",
+                                    "Condition": {
+                                        "StringEquals": {
+                                            "aws:username": {
+                                                "Ref": "JenkinsUserName"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-ecr"
+                                ]
+                            ]
+                        },
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ecr:*",
+                                        "cloudtrail:LookupEvents"
+                                    ],
+                                    "Resource": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:aws:ecr:::repository/",
+                                                {
+                                                    "Ref": "RepoName"
+                                                },
+                                                "*"
+                                            ]
+                                        ]
+                                    }
+                                },
+                                {
+                                    "Action": [
+                                        "ecr:GetDownloadUrlForLayer",
+                                        "ecr:BatchGetImage",
+                                        "ecr:BatchCheckLayerAvailability",
+                                        "ecr:PutImage",
+                                        "ecr:CompleteLayerUpload",
+                                        "ecr:UploadLayerPart",
+                                        "ecr:InitiateLayerUpload",
+                                        "ecr:GetAuthorizationToken"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-s3-bucket"
+                                ]
+                            ]
+                        },
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:Get*",
+                                        "s3:List*",
+                                        "s3:Put*"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:s3:::",
+                                                    {
+                                                        "Ref": "HostedZoneSubDomain"
+                                                    },
+                                                    ".",
+                                                    {
+                                                        "Ref": "HostedZone"
+                                                    }
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:s3:::",
+                                                    {
+                                                        "Ref": "HostedZoneSubDomain"
+                                                    },
+                                                    ".",
+                                                    {
+                                                        "Ref": "HostedZone"
+                                                    },
+                                                    "/*"
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:s3:::",
+                                                    {
+                                                        "Ref": "HostedZoneSubDomain"
+                                                    },
+                                                    ".dev.",
+                                                    {
+                                                        "Ref": "HostedZone"
+                                                    }
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:s3:::",
+                                                    {
+                                                        "Ref": "HostedZoneSubDomain"
+                                                    },
+                                                    ".dev.",
+                                                    {
+                                                        "Ref": "HostedZone"
+                                                    },
+                                                    "/*"
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:s3:::",
+                                                    {
+                                                        "Ref": "HostedZoneSubDomain"
+                                                    },
+                                                    ".test.",
+                                                    {
+                                                        "Ref": "HostedZone"
+                                                    }
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:s3:::",
+                                                    {
+                                                        "Ref": "HostedZoneSubDomain"
+                                                    },
+                                                    ".test.",
+                                                    {
+                                                        "Ref": "HostedZone"
+                                                    },
+                                                    "/*"
+                                                ]
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "68c69bc5-53dc-4bad-9315-21eb3137b80e"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "JenkinsUserName": {
+            "Type": "String"
+        },
+        "JenkinsUserPassword": {
+            "NoEcho": "true",
+            "Type": "String",
+            "Description": "New account password",
+            "MinLength": "1",
+            "MaxLength": "41",
+            "ConstraintDescription": "the password must be between 1 and 41 characters"
+        },
+        "HostedZone": {
+            "Type": "String",
+            "Description": "domain-name.com"
+        },
+        "HostedZoneSubDomain": {
+            "Type": "String",
+            "Description": "sub-domain"
+        },
+        "RepoName": {
+            "Type": "String",
+            "Description": "project-docker-repo"
+        }
+    },
+    "Outputs": {
+        "JenkinsUserNameValue": {
+            "Value": {
+                "Ref": "JenkinsUserName"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-JenkinsUserNameValue"
+                }
+            }
+        },
+        "HostedZoneValue": {
+            "Value": {
+                "Ref": "HostedZone"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-HostedZoneValue"
+                }
+            }
+        },
+        "HostedZoneSubDomainValue": {
+            "Value": {
+                "Ref": "HostedZoneSubDomain"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-HostedZoneSubDomainValue"
+                }
+            }
+        },
+        "RepoNameValue": {
+            "Value": {
+                "Ref": "RepoName"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-RepoNameValue"
+                }
+            }
+        }
+    },
+    "Metadata": {
+        "AWS::CloudFormation::Designer": {
+            "68c69bc5-53dc-4bad-9315-21eb3137b80e": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 60,
+                    "y": 90
+                },
+                "z": 1,
+                "embeds": []
+            }
+        }
+    }
+}

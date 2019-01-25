@@ -1,0 +1,43 @@
+READ::STEPS ->
+1) Run "IAM :" cloudformation
+2) Run "ecr:rds:s3  :" cloudformation
+3) Run jenkins "_anon_dev_test--admin-backend--multi"
+4) Run "ECS :" cloudformation
+5) Run jenkins "_anon_dev_test--admin-web--multi"
+DONE
+
+alias acf="aws cloudformation $@"
+
+IAM :
+acf create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name admincore-jenkins-iam \
+--template-body file://`pwd`/jenkins-iam/jenkins-iam.cf.template.json \
+--parameters file://`pwd`/jenkins-iam/jenkins-iam.cf.params.json --profile [AWS_USER]
+
+acf update-stack --capabilities CAPABILITY_NAMED_IAM --stack-name admincore-jenkins-iam \
+--template-body file://`pwd`/jenkins-iam/jenkins-iam.cf.template.json \
+--parameters file://`pwd`/jenkins-iam/jenkins-iam.cf.params.json --profile [AWS_USER]
+
+acf delete-stack --stack-name admincore-jenkins-iam --profile [AWS_USER]
+==========================================================
+ecr:rds:s3 :
+acf create-stack --capabilities CAPABILITY_NAMED_IAM --stack-name admincore-ecr-rds-s3-01--prod \
+--template-body file://`pwd`/ecr-rds-s3/ecr-rds-s3.cf.template.json \
+--parameters file://`pwd`/ecr-rds-s3/ecr-rds-s3.prod.cf.params.json --profile [AWS_USER]
+
+acf update-stack --capabilities CAPABILITY_NAMED_IAM --stack-name admincore-ecr-rds-s3-01--dev \
+--template-body file://`pwd`/ecr-rds-s3/ecr-rds-s3.cf.template.json \
+--parameters file://`pwd`/ecr-rds-s3/ecr-rds-s3.prod.cf.params.json --profile [AWS_USER]
+
+acf delete-stack --stack-name admincore-ecr-rds-s3-01--prod --profile [AWS_USER]
+
+=--------------------------------------------------------=
+ECS :
+acf create-stack --capabilities CAPABILITY_IAM --stack-name admincore-ecs-01--prod \
+--template-body file://`pwd`/ecs/ecs.cf.template.json \
+--parameters file://`pwd`/ecs/ecs.cf.prod.params.json --profile [AWS_USER]
+
+acf update-stack --capabilities CAPABILITY_IAM --stack-name admincore-ecs-01--prod \
+--template-body file://`pwd`/ecs/ecs.cf.template.json \
+--parameters file://`pwd`/ecs/ecs.cf.prod.params.json --profile [AWS_USER]
+
+acf delete-stack --stack-name admincore-ecs-01--prod --profile [AWS_USER]

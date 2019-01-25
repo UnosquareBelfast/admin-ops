@@ -1,0 +1,1295 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+      "IsProdEnv": {
+          "Fn::Equals": [
+              {
+                  "Ref": "Environment"
+              },
+              "prod"
+          ]
+      }
+  },
+  "Resources": {
+      "admincoreContainerRepo": {
+          "Type": "AWS::ECR::Repository",
+          "Properties": {
+              "RepositoryName": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-RepoNameValue"
+                              }
+                          },
+                          {
+                              "Fn::If": [
+                                  "IsProdEnv",
+                                  "",
+                                  {
+                                      "Fn::Join": [
+                                          "",
+                                          [
+                                              "-",
+                                              {
+                                                  "Ref": "Environment"
+                                              }
+                                          ]
+                                      ]
+                                  }
+                              ]
+                          }
+                      ]
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "ec5e86ab-729b-4a25-89f3-5e5314d2fc98"
+              }
+          }
+      },
+      "RepositoryURIRepoSsmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "admincoreContainerRepo",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/ecr/repositoryuri"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          {
+                              "Fn::Join": [
+                                  ".",
+                                  [
+                                      {
+                                          "Ref": "AWS::AccountId"
+                                      },
+                                      "dkr.ecr",
+                                      {
+                                          "Ref": "AWS::Region"
+                                      },
+                                      "amazonaws.com"
+                                  ]
+                              ]
+                          }
+                      ]
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "81666f21-8958-492f-9953-2b58dd57c0a6"
+              }
+          }
+      },
+      "RepositoryNameRepoSsmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "admincoreContainerRepo",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/ecr/reponame"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-RepoNameValue"
+                              }
+                          },
+                          {
+                              "Fn::If": [
+                                  "IsProdEnv",
+                                  "",
+                                  {
+                                      "Fn::Join": [
+                                          "",
+                                          [
+                                              "-",
+                                              {
+                                                  "Ref": "Environment"
+                                              }
+                                          ]
+                                      ]
+                                  }
+                              ]
+                          }
+                      ]
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "913b4fa9-f839-4d97-b97c-68ad6adea612"
+              }
+          }
+      },
+      "RepositoryARNSsmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "admincoreContainerRepo",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/ecr/repositoryarn"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::GetAtt": [
+                      "admincoreContainerRepo",
+                      "Arn"
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "1e2b12a3-7660-4b2f-b4e8-d42f4ad82c31"
+              }
+          }
+      },
+      "adminCoreRdsPostgres": {
+          "Type": "AWS::RDS::DBInstance",
+          "Properties": {
+              "DBName": {
+                  "Ref": "RdsDatabaseName"
+              },
+              "Engine": "postgres",
+              "MasterUsername": {
+                  "Ref": "RdsDatabaseMasterUserName"
+              },
+              "MasterUserPassword": {
+                  "Ref": "RdsDatabaseMasterUserPwd"
+              },
+              "DBInstanceClass": {
+                  "Ref": "RdsDatabaseInstanceType"
+              },
+              "AllocatedStorage": "5",
+              "DBSecurityGroups": [
+                  {
+                      "Ref": "adminCoreRdsPostgresRrsSG"
+                  }
+              ]
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "5aa66df3-2e76-4eb1-8166-520e57742bfb"
+              }
+          }
+      },
+      "adminCoreRdsPostgresRrsSG": {
+          "Type": "AWS::RDS::DBSecurityGroup",
+          "Properties": {
+              "GroupDescription": "Security Group for RDS public access",
+              "DBSecurityGroupIngress": {
+                  "CIDRIP": "0.0.0.0/0"
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "fb7d801e-8539-4bf7-a488-46ec840ccbe2"
+              }
+          }
+      },
+      "RdsDatabaseNameSmmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "adminCoreRdsPostgres",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/rds/rdsdatabasename"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Ref": "RdsDatabaseName"
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "56a86680-c7e2-44e6-9931-34096fb18455"
+              }
+          }
+      },
+      "RdsDatabaseMasterUserNameSmmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "adminCoreRdsPostgres",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/rds/rdsdatabasemasterusername"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Ref": "RdsDatabaseMasterUserName"
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "b752854e-ddb6-4cd8-977a-11b34ec34875"
+              }
+          }
+      },
+      "RdsDatabaseMasterUserPwdSmmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "adminCoreRdsPostgres",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/rds/rdsdatabasemasteruserpwd"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Ref": "RdsDatabaseMasterUserPwd"
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "18314f2d-f140-4a96-a647-5e29550c025a"
+              }
+          }
+      },
+      "RdsDatabaseEndpointSmmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "adminCoreRdsPostgres",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/rds/rdsdatabaseendpoint"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::GetAtt": [
+                      "adminCoreRdsPostgres",
+                      "Endpoint.Address"
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "281a4fd0-0d00-4b05-bb47-55e2e7b22fc0"
+              }
+          }
+      },
+      "RdsDatabasePortSmmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "adminCoreRdsPostgres",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/rds/rdsdatabaseport"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::GetAtt": [
+                      "adminCoreRdsPostgres",
+                      "Endpoint.Port"
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "7d417f2d-d480-4e98-80c0-17d97cc1ff30"
+              }
+          }
+      },
+      "RdsDatabaseInstanceTypeSmmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "adminCoreRdsPostgres",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/rds/rdsdatabaseinstancetype"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Ref": "RdsDatabaseInstanceType"
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "99d19d7e-39d3-4c1d-86d2-faffd4773fcf"
+              }
+          }
+      },
+      "AdminCoreDNSRecord": {
+          "Type": "AWS::Route53::RecordSet",
+          "DependsOn": [
+              "AdminCoreS3Bucket"
+          ],
+          "Properties": {
+              "HostedZoneName": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                              }
+                          },
+                          "."
+                      ]
+                  ]
+              },
+              "Comment": "CNAME redirect.",
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+
+                            {
+                                "Fn::ImportValue": {
+                                    "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                                }
+                            },
+                           {
+                              "Fn::If": [
+                                  "IsProdEnv",
+                                  "",
+                                  {
+                                      "Fn::Join": [
+                                          "",
+                                          [
+                                            ".",
+                                              {
+                                                  "Ref": "Environment"
+                                              }
+                                          ]
+                                      ]
+                                  }
+                              ]
+                           },
+                          ".",
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                              }
+                          }
+                      ]
+                  ]
+              },
+              "Type": "CNAME",
+              "TTL": "900",
+              "ResourceRecords": [
+                  {
+                      "Fn::Join": [
+                          "",
+                          [
+                            {
+                                "Fn::ImportValue": {
+                                    "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                                }
+                            },
+                              {
+                                  "Fn::If": [
+                                      "IsProdEnv",
+                                      "",
+                                      {
+                                          "Fn::Join": [
+                                              "",
+                                              [
+                                                ".",
+                                                  {
+                                                      "Ref": "Environment"
+                                                  }
+                                              ]
+                                          ]
+                                      }
+                                  ]
+                              },
+                              ".",
+                              {
+                                  "Fn::ImportValue": {
+                                      "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                                  }
+                              },
+                              ".s3-website-",
+                              {
+                                  "Ref": "AWS::Region"
+                              },
+                              ".amazonaws.com"
+                          ]
+                      ]
+                  }
+              ]
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "83dc0f51-3c80-4066-822c-976f4fa25654"
+              }
+          }
+      },
+      "AdminCoreS3Bucket": {
+          "Type": "AWS::S3::Bucket",
+          "Properties": {
+              "BucketName": {
+                  "Fn::Join": [
+                      "",
+                      [
+
+                        {
+                            "Fn::ImportValue": {
+                                "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                            }
+                        },
+                          {
+                              "Fn::If": [
+                                  "IsProdEnv",
+                                  "",
+                                  {
+                                      "Fn::Join": [
+                                          "",
+                                          [
+                                            ".",
+                                              {
+                                                  "Ref": "Environment"
+                                              }
+                                          ]
+                                      ]
+                                  }
+                              ]
+                          },
+                          ".",
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                              }
+                          }
+                      ]
+                  ]
+              },
+              "AccessControl": "PublicRead",
+              "WebsiteConfiguration": {
+                  "IndexDocument": "index.html",
+                  "ErrorDocument": "index.html"
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "67a966d9-3100-446b-a602-273771e82199"
+              }
+          }
+      },
+      "S3BucketSsmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "AdminCoreS3Bucket",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/s3/s3bucket"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::Join": [
+                      "",
+                      [
+
+                        {
+                            "Fn::ImportValue": {
+                                "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                            }
+                        },
+                          {
+                              "Fn::If": [
+                                  "IsProdEnv",
+                                  "",
+                                  {
+                                      "Fn::Join": [
+                                          "",
+                                          [
+                                            ".",
+                                              {
+                                                  "Ref": "Environment"
+                                              }
+                                          ]
+                                      ]
+                                  }
+                              ]
+                          },
+                          ".",
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                              }
+                          }
+                      ]
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "e621a803-9edc-4406-bcf7-e0493dba4e2f"
+              }
+          }
+      },
+      "RecordSetHostedZoneSsmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "AdminCoreDNSRecord",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/route53/recordsethostedzone"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                              }
+                          },
+                          "."
+                      ]
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "85334645-7a2a-4158-b8c4-fdf6ec5b609f"
+              }
+          }
+      },
+      "RecordSetDomainSsmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "AdminCoreDNSRecord",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/route53/recordsetdomain"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::Join": [
+                      "",
+                      [
+
+                        {
+                            "Fn::ImportValue": {
+                                "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                            }
+                        },
+                          {
+                              "Fn::If": [
+                                  "IsProdEnv",
+                                  "",
+                                  {
+                                      "Fn::Join": [
+                                          "",
+                                          [
+                                            ".",
+                                              {
+                                                  "Ref": "Environment"
+                                              }
+                                          ]
+                                      ]
+                                  }
+                              ]
+                          },
+                          ".",
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                              }
+                          }
+                      ]
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "b9660eeb-bf29-4ebd-9b75-5819557c0310"
+              }
+          }
+      },
+      "RecordSetCNAMESsmParam": {
+          "Type": "AWS::SSM::Parameter",
+          "DependsOn": "AdminCoreDNSRecord",
+          "Properties": {
+              "Name": {
+                  "Fn::Join": [
+                      "",
+                      [
+                          "/unosquare/project/internal/",
+                          {
+                              "Ref": "Environment"
+                          },
+                          "/param/route53/recordsetcname"
+                      ]
+                  ]
+              },
+              "Type": "String",
+              "Value": {
+                  "Fn::Join": [
+                      "",
+                      [
+
+                        {
+                            "Fn::ImportValue": {
+                                "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                            }
+                        },
+                          {
+                              "Fn::If": [
+                                  "IsProdEnv",
+                                  "",
+                                  {
+                                      "Fn::Join": [
+                                          "",
+                                          [
+                                            ".",
+                                              {
+                                                  "Ref": "Environment"
+                                              }
+                                          ]
+                                      ]
+                                  }
+                              ]
+                          },
+                          ".",
+                          {
+                              "Fn::ImportValue": {
+                                  "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                              }
+                          },
+                          ".s3-website-",
+                          {
+                              "Ref": "AWS::Region"
+                          },
+                          ".amazonaws.com"
+                      ]
+                  ]
+              }
+          },
+          "Metadata": {
+              "AWS::CloudFormation::Designer": {
+                  "id": "42f1b973-457f-4807-89ea-4ad3167c54b1"
+              }
+          }
+      }
+  },
+  "Parameters": {
+      "Environment": {
+          "Type": "String",
+          "AllowedValues": [
+              "prod",
+              "dev",
+              "test"
+          ]
+      },
+      "JenkinsUserIamStackName": {
+          "Type": "String"
+      },
+      "RdsDatabaseName": {
+          "Type": "String"
+      },
+      "RdsDatabaseMasterUserName": {
+          "Type": "String"
+      },
+      "RdsDatabaseMasterUserPwd": {
+          "NoEcho": "true",
+          "Type": "String",
+          "Description": "RDS password",
+          "MinLength": "1",
+          "MaxLength": "41",
+          "ConstraintDescription": "the password must be between 1 and 41 characters"
+      },
+      "RdsDatabaseInstanceType": {
+          "Type": "String",
+          "AllowedValues": [
+              "db.t2.micro",
+              "db.t2.small",
+              "db.t2.medium",
+              "db.t2.large"
+          ]
+      }
+  },
+  "Outputs": {
+      "EnvironmentType": {
+          "Value": {
+              "Ref": "Environment"
+          }
+      },
+      "RepositoryURIRepo": {
+          "Value": {
+              "Fn::Join": [
+                  "",
+                  [
+                      {
+                          "Fn::Join": [
+                              ".",
+                              [
+                                  {
+                                      "Ref": "AWS::AccountId"
+                                  },
+                                  "dkr.ecr",
+                                  {
+                                      "Ref": "AWS::Region"
+                                  },
+                                  "amazonaws.com"
+                              ]
+                          ]
+                      }
+                  ]
+              ]
+          }
+      },
+      "RepositoryName": {
+          "Value": {
+              "Fn::Join": [
+                  "",
+                  [
+                      {
+                          "Fn::ImportValue": {
+                              "Fn::Sub": "${JenkinsUserIamStackName}-RepoNameValue"
+                          }
+                      },
+                      {
+                          "Fn::If": [
+                              "IsProdEnv",
+                              "",
+                              {
+                                  "Fn::Join": [
+                                      "",
+                                      [
+                                          "-",
+                                          {
+                                              "Ref": "Environment"
+                                          }
+                                      ]
+                                  ]
+                              }
+                          ]
+                      }
+                  ]
+              ]
+          }
+      },
+      "RepositoryARN": {
+          "Value": {
+              "Fn::GetAtt": [
+                  "admincoreContainerRepo",
+                  "Arn"
+              ]
+          }
+      },
+      "EndpointAddress": {
+          "Description": "Rds endpoint",
+          "Value": {
+              "Fn::GetAtt": [
+                  "adminCoreRdsPostgres",
+                  "Endpoint.Address"
+              ]
+          }
+      },
+      "EndpointPort": {
+          "Description": "Rds Port",
+          "Value": {
+              "Fn::GetAtt": [
+                  "adminCoreRdsPostgres",
+                  "Endpoint.Port"
+              ]
+          }
+      },
+      "RecordSetHostedZone": {
+          "Value": {
+              "Fn::Join": [
+                  "",
+                  [
+                      {
+                          "Fn::ImportValue": {
+                              "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                          }
+                      },
+                      "."
+                  ]
+              ]
+          }
+      },
+      "RecordSetDomain": {
+          "Value": {
+              "Fn::Join": [
+                  "",
+                  [
+
+                    {
+                        "Fn::ImportValue": {
+                            "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                        }
+                    },
+                      {
+                          "Fn::If": [
+                              "IsProdEnv",
+                              "",
+                              {
+                                  "Fn::Join": [
+                                      "",
+                                      [
+                                        ".",
+                                          {
+                                              "Ref": "Environment"
+                                          }
+                                      ]
+                                  ]
+                              }
+                          ]
+                      },
+                      ".",
+                      {
+                          "Fn::ImportValue": {
+                              "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                          }
+                      }
+                  ]
+              ]
+          }
+      },
+      "RecordSetCNAME": {
+          "Value": {
+              "Fn::Join": [
+                  "",
+                  [
+
+                    {
+                        "Fn::ImportValue": {
+                            "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                        }
+                    },
+                      {
+                          "Fn::If": [
+                              "IsProdEnv",
+                              "",
+                              {
+                                  "Fn::Join": [
+                                      "",
+                                      [
+                                        ".",
+                                          {
+                                              "Ref": "Environment"
+                                          }
+                                      ]
+                                  ]
+                              }
+                          ]
+                      },
+                      ".",
+                      {
+                          "Fn::ImportValue": {
+                              "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                          }
+                      },
+                      ".s3-website-",
+                      {
+                          "Ref": "AWS::Region"
+                      },
+                      ".amazonaws.com"
+                  ]
+              ]
+          }
+      },
+      "AdminCoreS3Bucket": {
+          "Value": {
+              "Fn::Join": [
+                  "",
+                  [
+
+                    {
+                        "Fn::ImportValue": {
+                            "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneSubDomainValue"
+                        }
+                    },
+                      {
+                          "Fn::If": [
+                              "IsProdEnv",
+                              "",
+                              {
+                                  "Fn::Join": [
+                                      "",
+                                      [
+                                        ".",
+                                          {
+                                              "Ref": "Environment"
+                                          }
+                                      ]
+                                  ]
+                              }
+                          ]
+                      },
+                      ".",
+                      {
+                          "Fn::ImportValue": {
+                              "Fn::Sub": "${JenkinsUserIamStackName}-HostedZoneValue"
+                          }
+                      }
+                  ]
+              ]
+          }
+      },
+      "EnvironmentValue": {
+          "Value": {
+              "Ref": "Environment"
+          }
+      }
+  },
+  "Metadata": {
+      "AWS::CloudFormation::Designer": {
+          "42f1b973-457f-4807-89ea-4ad3167c54b1": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 50,
+                  "y": 270
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "ec5e86ab-729b-4a25-89f3-5e5314d2fc98",
+                  "83dc0f51-3c80-4066-822c-976f4fa25654"
+              ]
+          },
+          "b9660eeb-bf29-4ebd-9b75-5819557c0310": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 50,
+                  "y": 420
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "83dc0f51-3c80-4066-822c-976f4fa25654"
+              ]
+          },
+          "85334645-7a2a-4158-b8c4-fdf6ec5b609f": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 50,
+                  "y": 350
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "83dc0f51-3c80-4066-822c-976f4fa25654"
+              ]
+          },
+          "e621a803-9edc-4406-bcf7-e0493dba4e2f": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 150,
+                  "y": 270
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "83dc0f51-3c80-4066-822c-976f4fa25654",
+                  "67a966d9-3100-446b-a602-273771e82199"
+              ]
+          },
+          "67a966d9-3100-446b-a602-273771e82199": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 150,
+                  "y": 170
+              },
+              "z": 1,
+              "embeds": []
+          },
+          "83dc0f51-3c80-4066-822c-976f4fa25654": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 50,
+                  "y": 170
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "67a966d9-3100-446b-a602-273771e82199"
+              ]
+          },
+          "99d19d7e-39d3-4c1d-86d2-faffd4773fcf": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 520,
+                  "y": 290
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "5aa66df3-2e76-4eb1-8166-520e57742bfb"
+              ]
+          },
+          "18314f2d-f140-4a96-a647-5e29550c025a": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 440,
+                  "y": 380
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "5aa66df3-2e76-4eb1-8166-520e57742bfb"
+              ]
+          },
+          "b752854e-ddb6-4cd8-977a-11b34ec34875": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 360,
+                  "y": 380
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "5aa66df3-2e76-4eb1-8166-520e57742bfb"
+              ]
+          },
+          "56a86680-c7e2-44e6-9931-34096fb18455": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 520,
+                  "y": 380
+              },
+              "z": 1,
+              "embeds": []
+          },
+          "fb7d801e-8539-4bf7-a488-46ec840ccbe2": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 570,
+                  "y": 170
+              },
+              "z": 1,
+              "embeds": []
+          },
+          "5aa66df3-2e76-4eb1-8166-520e57742bfb": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 440,
+                  "y": 170
+              },
+              "z": 1,
+              "embeds": [],
+              "isassociatedwith": [
+                  "fb7d801e-8539-4bf7-a488-46ec840ccbe2"
+              ]
+          },
+          "7d417f2d-d480-4e98-80c0-17d97cc1ff30": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 360,
+                  "y": 290
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "67a966d9-3100-446b-a602-273771e82199"
+              ]
+          },
+          "281a4fd0-0d00-4b05-bb47-55e2e7b22fc0": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": 440,
+                  "y": 290
+              },
+              "z": 1,
+              "embeds": []
+          },
+          "913b4fa9-f839-4d97-b97c-68ad6adea612": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": -120,
+                  "y": 270
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "ec5e86ab-729b-4a25-89f3-5e5314d2fc98"
+              ]
+          },
+          "81666f21-8958-492f-9953-2b58dd57c0a6": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": -50,
+                  "y": 350
+              },
+              "z": 1,
+              "embeds": [],
+              "dependson": [
+                  "ec5e86ab-729b-4a25-89f3-5e5314d2fc98"
+              ]
+          },
+          "ec5e86ab-729b-4a25-89f3-5e5314d2fc98": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": -50,
+                  "y": 170
+              },
+              "z": 1,
+              "embeds": []
+          },
+          "1e2b12a3-7660-4b2f-b4e8-d42f4ad82c31": {
+              "size": {
+                  "width": 60,
+                  "height": 60
+              },
+              "position": {
+                  "x": -50,
+                  "y": 270
+              },
+              "z": 1,
+              "embeds": []
+          }
+      }
+  }
+}
